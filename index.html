@@ -4,56 +4,87 @@
   <title>Managed animation</title>
   <meta charset="utf-8">
   <style>
-    html,body{
+    /*disable text selection*/
+    * { 
+      -moz-user-select: none; /* Firefox */
+      -ms-user-select: none; /* Internet Explorer */
+      -khtml-user-select: none; /* KHTML browsers (e.g. Konqueror) */
+      -webkit-user-select: none; /* Chrome, Safari, and Opera */
+      -webkit-touch-callout: none; /* Disable Android and iOS callouts*/
+    }
+    
+    html,
+    body {
       height: 100%;
       margin: 0;
-      font-family: Verdana;
     }
+    
+    /* js: minimal min-width 500/min-height 500.
+      If client size bigger - size of body almost all of client */
     body{
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
-      min-height: 600px;
+      font-family: Verdana;
+      font-size: 1em;
+      /* min-width, min-height - set when the window is opened/reloaded */
     }
-    p{
-      text-align: center;
-      margin: 5px;
-    }
-    .container{
+    /* js: minmal width 500/height 500. If body bigger - size almost all of body*/
+    #main-container {
       display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-grow: 1;
+      flex-flow: column;
+      /*border: 1px solid grey;*/
+      
+      /* width, height - set when the window is opened/reloaded */
     }
-    #cancan {
-      border: 1px solid black;
+    
+    p {
+      margin: 0;
+      text-align: center;
     }
-    .italic{
-      font-style: italic;
+    #info-container{
+      flex: 0 1 content;
+      outline: 1px solid grey;
     }
-    .bold{
-      font-weight: bold;
+    #control-info{
+      border-bottom: 1px solid grey;
     }
-    .clearfix:after {
-      content: "";
-      display: table;
-      clear: both;
+    #state-info{
+      /*border-bottom: 1px solid grey;*/
+    }
+    canvas{
+      flex: 1 1 auto;
+      outline: 1px solid blue;
     }
   </style>
 </head>
 <body>
-  <div id="info">
-    <p>Control from computer keyboard</p>
-    <p>Control buttons:</p>
-    <p><b>Arrow buttons</b> / <b>W,A,S,D</b> - <i>direction</i></p>
-    <p><b>0-9</b> - <i>speed</i>, <b>spacebar</b> - <i>stop</i></p>
-    <p><b>Z</b> - <i>decrease speed</i>, <b>X</b> - <i>increase speed</i></p>
-    <p><b>C</b> - <i>decrease size</i>, <b>V</b> - <i>increase size</i></p>
-  </div>
+  <div id="main-container">
+    
+    <div id="placeholder_mobile_control_portrait"></div>
 
-  <div class="container clearfix" >
-    <canvas id="cancan" style=""></canvas>
+    <div id="info-container">
+      <div id="control-info">
+        <p>Control <span id="control-status"></span>buttons:</p>
+        <p>↑,←,↓,→ or <b><span id="key_w">W<span>,<span id="key_a">A<span>,<span id="key_s">S<span>,<span id="key_d">D<span></b> - <i>direction</i></p>
+        <p><b>0-9</b> - <i>speed</i>, <b><span id="stopbutton">spacebar</b> - <i>stop</i></p>
+        <p><b>Z</b> - <i>decrease speed</i>, <b>X</b> - <i>increase speed</i></p>
+        <p><b>C</b> - <i>decrease size</i>, <b>V</b> - <i>increase size</i></p>
+    
+      </div>
+  
+      <div id="state-info">
+        <p id="p-direction">Direction: <span id="span-direction"></span></p>
+        <p id="p-speed">Speed: <span id="span-speed"></span></p>
+        <p id="p-size">Size: <span id="span-size"></span></p>
+      </div> 
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="placeholder_mobile_control_landscape"></div>
+    <div id="placeholder_mobile_control_direction"></div>
+
   </div>
 
   <script type="text/javascript"
@@ -62,16 +93,12 @@
     "use strict";
 
     /* GLOBAL VARIABLES */
-    let eCanvas = document.getElementById('cancan');
+    let eCanvas = document.getElementById('canvas');
     let canvasContext = eCanvas.getContext('2d');
-    let nWindowWidth = document.documentElement.clientWidth;
-    let nWindowHeight = document.documentElement.clientHeight;
-    eCanvas.width = nWindowWidth * 0.8;
-    eCanvas.height = (nWindowHeight - document.getElementById('info').clientHeight) * 0.95;
 
-    let nCanvasWidth = eCanvas.width;
-    let nCanvasHeight = eCanvas.height;
-    let nCanvasShortSide = Math.min(nCanvasWidth,nCanvasHeight);
+    let nCanvasWidth;
+    let nCanvasHeight;
+    let nCanvasShortSide;
 
     //object for translation code of keys to action names
     let o_KeyActions = {
@@ -108,44 +135,162 @@
       90: 'speedDecrease', //Z
       67: 'sizeDecrease', //C
       86: 'sizeIncrease' //V
-      
+    }
+
+    let o_SpanId = {
+      32: 'spacebar', //spacebar
+      48: '0', //0 (speed 0)
+      96: 'n0', //num0 (speed 0)
+      37: 'left', //left arrow
+      65: '#key_a', //A
+      38: 'up', //top arrow
+      87: '#key_w', //W
+      39: 'right', // right arrow
+      68: '#key_d', // D
+      40: 'down', //down arrow
+      83: '#key_s', //S
+      49: '1', //key 1
+      50: '2', //key 2
+      51: '3', //key 3
+      52: '4', //key 4
+      53: '5', //key 5
+      54: '6', //key 6
+      55: '7', //key 7
+      56: '8', //key 8
+      57: '9', //key 9
+      97: 'n1', //key num1
+      98: 'n2', //key num2
+      99: 'n3', //key num3
+      100: 'n4', //key num4
+      101: 'n5', //key num5
+      102: 'n6', //key num6
+      103: 'n7', //key num7
+      104: 'n8', //key num8
+      105: 'n9', //key num9
+      88: 'x', //X
+      90: 'z', //Z
+      67: 'c', //C
+      86: 'v' //V
     }
     /* GLOBAL VARIABLES end */
 
     /* FUNCTIONS */
+
+    /*setup intrface. Used for dynamic setting sizes of elements.
+    min-width 500px, min-height 500px. if client size fewer - scrollbars
+    if bigger - content size expands to client size*/
+    let fSetInterface = () => {
+      let n_WindowWidth = document.documentElement.clientWidth;
+      let n_WindowHeight = document.documentElement.clientHeight;
+      let n_BodyMinWidth;
+      let n_BodyMinHeight;
+
+      if (n_WindowWidth < 500){
+        n_BodyMinWidth = 500;
+      } else {
+        n_BodyMinWidth = n_WindowWidth - 20;
+      }
+      if (n_WindowHeight < 500){
+        n_BodyMinHeight = 500;
+      } else {
+        n_BodyMinHeight = n_WindowHeight - 20;
+      }
+      $('body').css({
+        'min-width' : n_BodyMinWidth + 'px',
+        'min-height' : n_BodyMinHeight + 'px'
+      });
+      $('#main-container').css({
+        'width' : n_BodyMinWidth + 'px',
+        'height' : n_BodyMinHeight + 'px'
+      });
+
+      if (!fIsMobile()) { //desctop
+        $("#control-status").text("available, ");
+        nCanvasWidth = n_BodyMinWidth;
+        nCanvasHeight = n_BodyMinHeight - document.getElementById('control-info').clientHeight
+          - document.getElementById('state-info').clientHeight;
+  
+        $('#canvas').css({
+          'width' : nCanvasWidth + 'px',
+          'height' : nCanvasHeight + 'px'
+        });
+  
+        eCanvas.width = nCanvasWidth;
+        eCanvas.height = nCanvasHeight;    
+        nCanvasShortSide = Math.min(nCanvasWidth,nCanvasHeight);
+
+      } else { //mobile
+        $("#control-status").text("not available, ");
+        window.addEventListener('focus', ()=>{}); //remove event focus
+        $('body').css('font-size','2em'); //Increases text size on mobile devices
+
+        if (n_WindowWidth < n_WindowHeight){ //portrait orientation
+          nCanvasWidth = n_BodyMinWidth;
+          nCanvasHeight = n_BodyMinHeight - document.getElementById('control-info').clientHeight
+            - document.getElementById('state-info').clientHeight;
+    
+          $('#canvas').css({
+            'width' : nCanvasWidth + 'px',
+            'height' : nCanvasHeight + 'px'
+          });
+    
+          eCanvas.width = nCanvasWidth;
+          eCanvas.height = nCanvasHeight;    
+          nCanvasShortSide = Math.min(nCanvasWidth,nCanvasHeight);
+
+        } else { //album orientation
+          nCanvasWidth = n_BodyMinWidth;
+          nCanvasHeight = n_BodyMinHeight - document.getElementById('control-info').clientHeight
+            - document.getElementById('state-info').clientHeight;
+    
+          $('#canvas').css({
+            'width' : nCanvasWidth + 'px',
+            'height' : nCanvasHeight + 'px'
+          });
+    
+          eCanvas.width = nCanvasWidth;
+          eCanvas.height = nCanvasHeight;    
+          nCanvasShortSide = Math.min(nCanvasWidth,nCanvasHeight);
+        }
+      }
+
+    }
+
+    //check is it device mobile (with touchscreen). True - mobile/ false - desctop
+    let fIsMobile = () => {
+      return ('ontouchstart' in document.documentElement);
+    }
+
     let fDrawCircle = (Xcenter, Ycenter, radius, fill) => {
       canvasContext.beginPath();
       canvasContext.arc(Xcenter, Ycenter, radius, 0, Math.PI * 2);
       (fill) ? canvasContext.fill() : canvasContext.stroke();
     }
+
+
     /* FUNCTIONS end */
 
     /* CONSTRUCTORS */
     let Ball = function () {
-      this.x;
-      this.y;
+      this.x = nCanvasWidth / 2;
+      this.y = nCanvasHeight / 2;
       this.radius;
+      this.setRadius(nCanvasShortSide / 40);
       this.speed;
-      this.Xspeed;
-      this.Yspeed;
+      this.setSpeed(5);
+      this.Xspeed = this.speed;
+      this.Yspeed = 0;
       this.direction;
-      this.flagZeroSpeed;
+      this.setDirection('right');
+      this.flagZeroSpeed = false;
       this.intervalID;
-      this.updateFrequency; //in ms
+      this.updateFrequency = 30;  //in ms
       this.animate();
     }
+
     /* CONSTRUCTORS end */
 
     /* PROTOTYPE PROPERTYS */
-      Ball.prototype.x = nCanvasWidth / 2;
-      Ball.prototype.y = nCanvasHeight / 2;
-      Ball.prototype.radius = nCanvasShortSide / 40;
-      Ball.prototype.speed = 5;
-      Ball.prototype.Xspeed = Ball.prototype.speed;
-      Ball.prototype.Yspeed = 0;
-      Ball.prototype.flagZeroSpeed = false;
-      Ball.prototype.direction = 'right';
-      Ball.prototype.updateFrequency = 30;  //in ms
 
     /* PROTOTYPE PROPERTYS end*/
 
@@ -163,93 +308,113 @@
       fDrawCircle(this.x, this.y, this.radius, true);
     }
 
+    Ball.prototype.setDirection = function(value){
+      this.direction = value;
+      $('#span-direction').text(value);
+    }
+
+    Ball.prototype.setSpeed = function(value){
+      this.speed = value;
+      $('#span-speed').text(value);
+    }
+
+    Ball.prototype.setRadius = function(value){
+      this.radius = value;
+      $('#span-size').text(value.toFixed(0));
+    }
+
     //Set the action of movement. Depends on argument string-name of the action
     Ball.prototype.setAction = function(action) {
       switch (action) {
         case 'up': {
           this.Xspeed = 0;
           this.Yspeed = -this.speed;
+          this.setDirection(action);
           break;
         }
         case 'down': {
           this.Xspeed = 0;
           this.Yspeed = this.speed;
+          this.setDirection(action);
           break;
         }
         case 'left': {
           this.Xspeed = -this.speed;
           this.Yspeed = 0;
+          this.setDirection(action);
           break;
         }
         case 'right': {
           this.Xspeed = this.speed;
           this.Yspeed = 0;
+          this.setDirection(action);
           break;
         }
         case 'stop': {
           this.rememberDirection();
           this.Xspeed = 0;
           this.Yspeed = 0;
-          this.speed = 0;
+          this.setSpeed(0);
           this.flagZeroSpeed = true;
           break;
         }
         case 'speed1': {
-          this.speed = 1;
+          this.setSpeed(1);
           this.changeSpeed();
           break;
         }
         case 'speed2': {
-          this.speed = 2;
+          this.setSpeed(2);
           this.changeSpeed();
           break;
         }
         case 'speed3': {
-          this.speed = 3;
+          this.setSpeed(3);
           this.changeSpeed();
           break;
         }
         case 'speed4': {
-          this.speed = 4;
+          this.setSpeed(4);
           this.changeSpeed();
           break;
         }
         case 'speed5': {
-          this.speed = 5;
+          this.setSpeed(5);
           this.changeSpeed();
           break;
         }
         case 'speed6': {
-          this.speed = 6;
+          this.setSpeed(6);
           this.changeSpeed();
           break;
         }
         case 'speed7': {
-          this.speed = 7;
+          this.setSpeed(7);
           this.changeSpeed();
           break;
         }
         case 'speed8': {
-          this.speed = 8;
+          this.setSpeed(8);
           this.changeSpeed();
           break;
         }
         case 'speed9': {
-          this.speed = 9;
+          this.setSpeed(9);
           this.changeSpeed();
           break;
         }
         case 'speedIncrease': {
-          this.speed++;
+          this.setSpeed(++this.speed);
           this.changeSpeed();
           break;
         }
         case 'speedDecrease': {
-          this.speed--;
+          this.setSpeed(--this.speed);
           if (this.speed === 0){
             this.rememberDirection();
             this.Xspeed = 0;
             this.Yspeed = 0;
+            this.setSpeed(0);
             this.flagZeroSpeed = true;
             break;
           }
@@ -257,12 +422,12 @@
           break;
         }
         case 'sizeIncrease':{
-          (this.radius < nCanvasShortSide / 2) ? this.radius++
-            : this.radius = nCanvasShortSide / 2;
+          (this.radius < nCanvasShortSide / 2) ? this.setRadius(++this.radius)
+            : this.setRadius(nCanvasShortSide / 2);
           break;
         }
         case 'sizeDecrease':{
-          (this.radius > 1) ? this.radius-- : this.radius = 1;
+          (this.radius > 1) ? this.setRadius(--this.radius) : this.setRadius(1);
           break;
         }
       }
@@ -292,7 +457,7 @@
 
     Ball.prototype.changeSpeed = function() {
       if (this.speed < 0){
-        this.speed = 0;
+        this.setSpeed(0);
         return;
       }
 
@@ -346,31 +511,70 @@
         return;
       }
       if (this.Xspeed > 0){
-        this.direction = 'right';
+        this.setDirection('right');
         return;
       }
       if (this.Xspeed < 0){
-        this.direction = 'left';
+        this.setDirection('left');
         return;
       }
-      (this.Yspeed > 0) ? this.direction = 'down' : this.direction = 'up';
+      if (this.Yspeed > 0) {
+        this.setDirection('down');
+        return;
+      }
+      if (this.Yspeed < 0) {
+        this.setDirection('up');
+        return;
+      }
     }
     
     /* PROTOTYPE METHODS end */
 
     /* EVENTS */
+
+
+    window.addEventListener('blur', ()=>{
+      $("#control-status").text("not available, ");
+      $("#control-status").css('color','red');
+    });
+    window.addEventListener('focus', ()=>{
+      $("#control-status").text("available, ");
+      $("#control-status").css('color','green');
+    });
+
+    //prevent scroll with arrows?
+    window.addEventListener("keydown", function(e) {
+      // space and arrow keys
+      if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+        e.preventDefault();
+      }
+    }, false);
     //find out which button is pressed, and changing position of Ball
     $("body").keydown(function (event){
       // console.log(event.keyCode);
       let action = o_KeyActions[event.keyCode];
       myBall.setAction(action);
+      // fActiveButtonIndicateOn(o_SpanId[event.keyCode]);
     });
 
-    $(window).resize( ()=>{ location.reload(); } );
+    $("body").keyup(function (event){
+      // fActiveButtonIndicateOff(o_SpanId[event.keyCode]);
+    });
+
+    let fActiveButtonIndicateOn = (spanId) => {
+      // $(spanId).css('color','blue');
+    }
+
+    let fActiveButtonIndicateOff = (spanId) => {
+      // $(spanId).css('color','black');
+    } 
+
+    
 
     /* EVENTS end */
 
     /* MAIN CODE */
+    fSetInterface();
     //create new Ball object
     let myBall = new Ball();
     /* MAIN CODE end */
