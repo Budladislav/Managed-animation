@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Managed animation</title>
+  <meta charset="utf-8">
+  <style>
+    html,body{
+      height: 100%;
+      margin: 0;
+      font-family: Verdana;
+    }
+    body{
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 600px;
+    }
+    p{
+      text-align: center;
+      margin: 5px;
+    }
+    .container{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-grow: 1;
+    }
+    #cancan {
+      border: 1px solid black;
+    }
+    .italic{
+      font-style: italic;
+    }
+    .bold{
+      font-weight: bold;
+    }
+    .clearfix:after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <p>Control from computer keyboard</p>
+    <p>Control buttons:</p>
+    <p><b>Arrow buttons</b> / <b>W,A,S,D</b> - <i>direction</i></p>
+    <p><b>0-9</b> - <i>speed</i>, <b>spacebar</b> - <i>stop</i></p>
+    <p><b>Z</b> - <i>decrease speed</i>, <b>X</b> - <i>increase speed</i></p>
+    <p><b>C</b> - <i>decrease size</i>, <b>V</b> - <i>increase size</i></p>
+  </div>
+
+  <div class="container clearfix" >
+    <canvas id="cancan" style=""></canvas>
+  </div>
+
+  <script type="text/javascript"
+    src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript">
+    "use strict";
+
+    /* GLOBAL VARIABLES */
+    let eCanvas = document.getElementById('cancan');
+    let canvasContext = eCanvas.getContext('2d');
+    let nWindowWidth = document.documentElement.clientWidth;
+    let nWindowHeight = document.documentElement.clientHeight;
+    eCanvas.width = nWindowWidth * 0.8;
+    eCanvas.height = (nWindowHeight - document.getElementById('info').clientHeight) * 0.95;
+
+    let nCanvasWidth = eCanvas.width;
+    let nCanvasHeight = eCanvas.height;
+    let nCanvasShortSide = Math.min(nCanvasWidth,nCanvasHeight);
+
+    //object for translation code of keys to action names
+    let o_KeyActions = {
+      32: 'stop', //spacebar
+      48: 'stop', //0 (speed 0)
+      96: 'stop', //num0 (speed 0)
+      37: 'left', //left arrow
+      65: 'left', //A
+      38: 'up', //top arrow
+      87: 'up', //W
+      39: 'right', // right arrow
+      68: 'right', // D
+      40: 'down', //down arrow
+      83: 'down', //S
+      49: 'speed1', //key 1
+      50: 'speed2', //key 2
+      51: 'speed3', //key 3
+      52: 'speed4', //key 4
+      53: 'speed5', //key 5
+      54: 'speed6', //key 6
+      55: 'speed7', //key 7
+      56: 'speed8', //key 8
+      57: 'speed9', //key 9
+      97: 'speed1', //key num1
+      98: 'speed2', //key num2
+      99: 'speed3', //key num3
+      100: 'speed4', //key num4
+      101: 'speed5', //key num5
+      102: 'speed6', //key num6
+      103: 'speed7', //key num7
+      104: 'speed8', //key num8
+      105: 'speed9', //key num9
+      88: 'speedIncrease', //X
+      90: 'speedDecrease', //Z
+      67: 'sizeDecrease', //C
+      86: 'sizeIncrease' //V
+      
+    }
+    /* GLOBAL VARIABLES end */
+
+    /* FUNCTIONS */
+    let fDrawCircle = (Xcenter, Ycenter, radius, fill) => {
+      canvasContext.beginPath();
+      canvasContext.arc(Xcenter, Ycenter, radius, 0, Math.PI * 2);
+      (fill) ? canvasContext.fill() : canvasContext.stroke();
+    }
+    /* FUNCTIONS end */
+
+    /* CONSTRUCTORS */
+    let Ball = function () {
+      this.x;
+      this.y;
+      this.radius;
+      this.speed;
+      this.Xspeed;
+      this.Yspeed;
+      this.direction;
+      this.flagZeroSpeed;
+      this.intervalID;
+      this.updateFrequency; //in ms
+      this.animate();
+    }
+    /* CONSTRUCTORS end */
+
+    /* PROTOTYPE PROPERTYS */
+      Ball.prototype.x = nCanvasWidth / 2;
+      Ball.prototype.y = nCanvasHeight / 2;
+      Ball.prototype.radius = nCanvasShortSide / 40;
+      Ball.prototype.speed = 5;
+      Ball.prototype.Xspeed = Ball.prototype.speed;
+      Ball.prototype.Yspeed = 0;
+      Ball.prototype.flagZeroSpeed = false;
+      Ball.prototype.direction = 'right';
+      Ball.prototype.updateFrequency = 30;  //in ms
+
+    /* PROTOTYPE PROPERTYS end*/
+
+    /* PROTOTYPE METHODS */
+
+    //update position of the ball, according to its speed.
+    Ball.prototype.move = function(){
+      this.x += this.Xspeed;
+      this.y += this.Yspeed;
+      this.checkColisionAndOverflow();
+    }
+
+    //draw ball in its current position
+    Ball.prototype.draw = function(){
+      fDrawCircle(this.x, this.y, this.radius, true);
+    }
+
+    //Set the action of movement. Depends on argument string-name of the action
+    Ball.prototype.setAction = function(action) {
+      switch (action) {
+        case 'up': {
+          this.Xspeed = 0;
+          this.Yspeed = -this.speed;
+          break;
+        }
+        case 'down': {
+          this.Xspeed = 0;
+          this.Yspeed = this.speed;
+          break;
+        }
+        case 'left': {
+          this.Xspeed = -this.speed;
+          this.Yspeed = 0;
+          break;
+        }
+        case 'right': {
+          this.Xspeed = this.speed;
+          this.Yspeed = 0;
+          break;
+        }
+        case 'stop': {
+          this.rememberDirection();
+          this.Xspeed = 0;
+          this.Yspeed = 0;
+          this.speed = 0;
+          this.flagZeroSpeed = true;
+          break;
+        }
+        case 'speed1': {
+          this.speed = 1;
+          this.changeSpeed();
+          break;
+        }
+        case 'speed2': {
+          this.speed = 2;
+          this.changeSpeed();
+          break;
+        }
+        case 'speed3': {
+          this.speed = 3;
+          this.changeSpeed();
+          break;
+        }
+        case 'speed4': {
+          this.speed = 4;
+          this.changeSpeed();
+          break;
+        }
+        case 'speed5': {
+          this.speed = 5;
+          this.changeSpeed();
+          break;
+        }
+        case 'speed6': {
+          this.speed = 6;
+          this.changeSpeed();
+          break;
+        }
+        case 'speed7': {
+          this.speed = 7;
+          this.changeSpeed();
+          break;
+        }
+        case 'speed8': {
+          this.speed = 8;
+          this.changeSpeed();
+          break;
+        }
+        case 'speed9': {
+          this.speed = 9;
+          this.changeSpeed();
+          break;
+        }
+        case 'speedIncrease': {
+          this.speed++;
+          this.changeSpeed();
+          break;
+        }
+        case 'speedDecrease': {
+          this.speed--;
+          if (this.speed === 0){
+            this.rememberDirection();
+            this.Xspeed = 0;
+            this.Yspeed = 0;
+            this.flagZeroSpeed = true;
+            break;
+          }
+          this.changeSpeed();
+          break;
+        }
+        case 'sizeIncrease':{
+          (this.radius < nCanvasShortSide / 2) ? this.radius++
+            : this.radius = nCanvasShortSide / 2;
+          break;
+        }
+        case 'sizeDecrease':{
+          (this.radius > 1) ? this.radius-- : this.radius = 1;
+          break;
+        }
+      }
+    }
+    //If ball reach any boundary of canvas - invert speed
+    //And refresh coordinates in case ball goes out of boundaries due to player action
+    Ball.prototype.checkColisionAndOverflow = function() {
+      if (this.x > nCanvasWidth - this.radius){
+        this.x = nCanvasWidth - this.radius; 
+        this.Xspeed = -this.Xspeed;
+        this.rememberDirection();
+      } else if (this.x < this.radius) {
+          this.x = this.radius;  
+          this.Xspeed = -this.Xspeed;
+          this.rememberDirection();
+        }
+      if (this.y > nCanvasHeight - this.radius){
+        this.y = nCanvasHeight - this.radius;
+        this.Yspeed = -this.Yspeed;
+        this.rememberDirection();
+      } else if (this.y < this.radius) {
+          this.y = this.radius;
+          this.Yspeed = -this.Yspeed;
+          this.rememberDirection();
+        }
+    }
+
+    Ball.prototype.changeSpeed = function() {
+      if (this.speed < 0){
+        this.speed = 0;
+        return;
+      }
+
+      if (this.flagZeroSpeed){ //return speed in last direction before stop
+        switch (this.direction) {
+          case 'right': {
+            this.Xspeed = this.speed;
+            this.flagZeroSpeed = false;
+            return;
+          }
+          case 'left': {
+            this.Xspeed = -this.speed;
+            this.flagZeroSpeed = false;
+            return;
+          }
+          case 'down': {
+            this.Yspeed = this.speed;
+            this.flagZeroSpeed = false;
+            return;
+          }
+          case 'up': {
+            this.Yspeed = -this.speed;
+            this.flagZeroSpeed = false;
+            return;
+          }
+        }
+      }
+
+      if (this.Xspeed > 0) {
+        this.Xspeed = this.speed;
+      } else if (this.Xspeed < 0) {
+          this.Xspeed = -this.speed;
+        }
+      if (this.Yspeed > 0) {
+        this.Yspeed = this.speed;
+      } else if (this.Yspeed < 0) {
+          this.Yspeed = -this.speed;
+        }
+    }
+
+    Ball.prototype.animate = function() {
+      this.intervalID = setInterval(()=>{
+        canvasContext.clearRect(0,0,nCanvasWidth,nCanvasHeight);
+        this.draw();
+        this.move();
+      },this.updateFrequency);
+    }
+
+    Ball.prototype.rememberDirection = function() {
+      if (this.Xspeed === 0 && this.Yspeed ===0) {
+        return;
+      }
+      if (this.Xspeed > 0){
+        this.direction = 'right';
+        return;
+      }
+      if (this.Xspeed < 0){
+        this.direction = 'left';
+        return;
+      }
+      (this.Yspeed > 0) ? this.direction = 'down' : this.direction = 'up';
+    }
+    
+    /* PROTOTYPE METHODS end */
+
+    /* EVENTS */
+    //find out which button is pressed, and changing position of Ball
+    $("body").keydown(function (event){
+      // console.log(event.keyCode);
+      let action = o_KeyActions[event.keyCode];
+      myBall.setAction(action);
+    });
+
+    $(window).resize( ()=>{ location.reload(); } );
+
+    /* EVENTS end */
+
+    /* MAIN CODE */
+    //create new Ball object
+    let myBall = new Ball();
+    /* MAIN CODE end */
+
+  </script>
+</body>
+</html>
