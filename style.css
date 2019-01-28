@@ -1,0 +1,111 @@
+/*disable text selection*/
+* { 
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer */
+  -khtml-user-select: none; /* KHTML browsers (e.g. Konqueror) */
+  -webkit-user-select: none; /* Chrome, Safari, and Opera */
+  -webkit-touch-callout: none; /* Disable Android and iOS callouts*/
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+/* js: minimal min-width 500/min-height 500.
+  If client size bigger - size of body almost all of client */
+body{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: Verdana;
+  font-size: 1em;
+  /* min-width, min-height - set when the window is opened/reloaded */
+}
+
+/* js: minmal width 500/height 500. If body bigger - size almost all of body*/
+#main-container {
+  display: flex;
+  flex-flow: column; 
+  /* width, height - set when the window is opened/reloaded */
+}
+
+p {
+  margin: 0;
+  text-align: center;
+}
+/* flex: height - depends on content of #info-container */
+#info-container{
+  flex: 0 1 content;
+  border: 1px solid grey;
+  box-sizing: border-box;
+}
+#control-info{ /*block only for desctop*/
+  border-bottom: 1px solid grey;
+  padding: 5px 0;
+}
+#state-info{
+  padding: 5px 0;
+}
+
+/*flex - occupies all free space*/
+canvas{ 
+  flex: 1 1 auto;
+  border: 2px solid blue;
+}
+
+#mobile-controlls-container{
+  display: flex;
+  flex: 0 1 auto;
+  border: 1px solid grey;
+  box-sizing: border-box;
+  /* width, height - set in js when the window is opened/reloaded */
+}
+#controls_size-speed{
+  border-right: 1px solid black;
+  display: flex;
+  justify-content: space-around;
+}
+#controls_direction{
+  display: flex;
+  justify-content: space-around;
+}
+.mobile-control-button{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: lightblue;
+  border-radius: 50%;
+  box-shadow:
+    inset rgba(0,0,0,.5) -3px -3px 8px,
+    inset rgba(255,255,255,.9) 3px 3px 8px,
+    rgba(0,0,0,.8) 3px 3px 8px -3px;
+  /*width,height,margin - js */
+}
+.span-big{
+  font-size: 1.5em;
+}
+.footer { /* flex: height - depends on content of .footer */
+  flex: 0 1 auto;
+  padding: 5px 0;
+  border: 1px solid grey;
+  box-sizing: border-box;
+}
+.footer a {
+  color: black;
+  text-decoration: none;
+  border-bottom: 1px solid black;
+}
+
+.footer a:hover {
+  border: 1px solid black;
+  padding: 1px;
+}
+
+.footer a:active {
+  background: orange;
+  border-radius: 10px;
+  padding: 2px;
+  border: 1px solid black;
+}

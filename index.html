@@ -2,75 +2,41 @@
 <html>
 <head>
   <title>Managed animation</title>
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
   <meta charset="utf-8">
-  <style>
-    /*disable text selection*/
-    * { 
-      -moz-user-select: none; /* Firefox */
-      -ms-user-select: none; /* Internet Explorer */
-      -khtml-user-select: none; /* KHTML browsers (e.g. Konqueror) */
-      -webkit-user-select: none; /* Chrome, Safari, and Opera */
-      -webkit-touch-callout: none; /* Disable Android and iOS callouts*/
-    }
-    
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-    }
-    
-    /* js: minimal min-width 500/min-height 500.
-      If client size bigger - size of body almost all of client */
-    body{
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: Verdana;
-      font-size: 1em;
-      /* min-width, min-height - set when the window is opened/reloaded */
-    }
-    /* js: minmal width 500/height 500. If body bigger - size almost all of body*/
-    #main-container {
-      display: flex;
-      flex-flow: column;
-      /*border: 1px solid grey;*/
-      
-      /* width, height - set when the window is opened/reloaded */
-    }
-    
-    p {
-      margin: 0;
-      text-align: center;
-    }
-    #info-container{
-      flex: 0 1 content;
-      outline: 1px solid grey;
-    }
-    #control-info{
-      border-bottom: 1px solid grey;
-    }
-    #state-info{
-      /*border-bottom: 1px solid grey;*/
-    }
-    canvas{
-      flex: 1 1 auto;
-      outline: 1px solid blue;
-    }
-  </style>
+  <!-- set actually width for mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- forbid of screen expansion on mobile devices -->
+  <meta name="viewport" content="user-scalable=no">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script type="text/javascript" src="jquery-3.3.1.min.js"></script>
+  
 </head>
+
 <body>
   <div id="main-container">
-    
-    <div id="placeholder_mobile_control_portrait"></div>
 
     <div id="info-container">
-      <div id="control-info">
+      <div id="control-info"> <!-- displays only for desctop -->
         <p>Control <span id="control-status"></span>buttons:</p>
-        <p>↑,←,↓,→ or <b><span id="key_w">W<span>,<span id="key_a">A<span>,<span id="key_s">S<span>,<span id="key_d">D<span></b> - <i>direction</i></p>
-        <p><b>0-9</b> - <i>speed</i>, <b><span id="stopbutton">spacebar</b> - <i>stop</i></p>
-        <p><b>Z</b> - <i>decrease speed</i>, <b>X</b> - <i>increase speed</i></p>
-        <p><b>C</b> - <i>decrease size</i>, <b>V</b> - <i>increase size</i></p>
-    
+        <p>
+          <b><span id="↑">↑</span>,<span id="←">←</span>,
+          <span id="↓">↓</span>,<span id="→">→</span></b> or 
+          <b><span id="w">W</span>,<span id="a">A</span>,<span id="s">S</span>,<span id="d">D</span></b>
+           - <i>direction</i>
+        </p>
+        <p>
+          <b><span id="0">0</span>-<span id="9">9</span></b> - <i>speed</i>,
+           <b><span id="space">spacebar</span></b> - <i>stop</i>
+        </p>
+        <p>
+          <b><span id="z">Z</span></b> - <i>decrease speed</i>,
+          <b><span id="x">X</span></b> - <i>increase speed</i>
+        </p>
+        <p>
+          <b><span id="c">C</span></b> - <i>decrease size</i>,
+          <b><span id="v">V</span></b> - <i>increase size</i>
+        </p>
       </div>
   
       <div id="state-info">
@@ -79,506 +45,30 @@
         <p id="p-size">Size: <span id="span-size"></span></p>
       </div> 
     </div>
+    
+    <canvas id="canvas"></canvas> <!-- width and height are set in js --> 
 
-    <canvas id="canvas"></canvas>
+    <div id="mobile-controlls-container">
+      <div id="controls_size-speed">
+        <div class="mobile-control-button" id="button-sp_u"><p>Sp.<br> <span class="span-big">+</span></p></div>
+        <div class="mobile-control-button" id="button-sp_d"><p>Sp.<br> <span class="span-big">-</span></p></div>
+        <div class="mobile-control-button" id="button-si_u"><p>Si.<br> <span class="span-big">+</span></p></div>
+        <div class="mobile-control-button" id="button-si_d"><p>Si.<br> <span class="span-big">-</span></p></div>
+      </div>
+      <div id="controls_direction">
+        <div class="mobile-control-button" id="button-up"> <span class="span-big">▲</span> </div>
+        <div class="mobile-control-button" id="button-down"> <span class="span-big">▼</span></div>
+        <div class="mobile-control-button" id="button-left"> <span class="span-big">◄</span></div>
+        <div class="mobile-control-button" id="button-right"> <span class="span-big">►</span></div>
+      </div>
+    </div>
 
-    <div id="placeholder_mobile_control_landscape"></div>
-    <div id="placeholder_mobile_control_direction"></div>
+    <div class="footer">
+      <p>by <a href="http://www.budladislav.info/">Budladislav</a> jan.2019</p>
+    </div>    
 
   </div>
 
-  <script type="text/javascript"
-    src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-  <script type="text/javascript">
-    "use strict";
-
-    /* GLOBAL VARIABLES */
-    let eCanvas = document.getElementById('canvas');
-    let canvasContext = eCanvas.getContext('2d');
-
-    let nCanvasWidth;
-    let nCanvasHeight;
-    let nCanvasShortSide;
-
-    //object for translation code of keys to action names
-    let o_KeyActions = {
-      32: 'stop', //spacebar
-      48: 'stop', //0 (speed 0)
-      96: 'stop', //num0 (speed 0)
-      37: 'left', //left arrow
-      65: 'left', //A
-      38: 'up', //top arrow
-      87: 'up', //W
-      39: 'right', // right arrow
-      68: 'right', // D
-      40: 'down', //down arrow
-      83: 'down', //S
-      49: 'speed1', //key 1
-      50: 'speed2', //key 2
-      51: 'speed3', //key 3
-      52: 'speed4', //key 4
-      53: 'speed5', //key 5
-      54: 'speed6', //key 6
-      55: 'speed7', //key 7
-      56: 'speed8', //key 8
-      57: 'speed9', //key 9
-      97: 'speed1', //key num1
-      98: 'speed2', //key num2
-      99: 'speed3', //key num3
-      100: 'speed4', //key num4
-      101: 'speed5', //key num5
-      102: 'speed6', //key num6
-      103: 'speed7', //key num7
-      104: 'speed8', //key num8
-      105: 'speed9', //key num9
-      88: 'speedIncrease', //X
-      90: 'speedDecrease', //Z
-      67: 'sizeDecrease', //C
-      86: 'sizeIncrease' //V
-    }
-
-    let o_SpanId = {
-      32: 'spacebar', //spacebar
-      48: '0', //0 (speed 0)
-      96: 'n0', //num0 (speed 0)
-      37: 'left', //left arrow
-      65: '#key_a', //A
-      38: 'up', //top arrow
-      87: '#key_w', //W
-      39: 'right', // right arrow
-      68: '#key_d', // D
-      40: 'down', //down arrow
-      83: '#key_s', //S
-      49: '1', //key 1
-      50: '2', //key 2
-      51: '3', //key 3
-      52: '4', //key 4
-      53: '5', //key 5
-      54: '6', //key 6
-      55: '7', //key 7
-      56: '8', //key 8
-      57: '9', //key 9
-      97: 'n1', //key num1
-      98: 'n2', //key num2
-      99: 'n3', //key num3
-      100: 'n4', //key num4
-      101: 'n5', //key num5
-      102: 'n6', //key num6
-      103: 'n7', //key num7
-      104: 'n8', //key num8
-      105: 'n9', //key num9
-      88: 'x', //X
-      90: 'z', //Z
-      67: 'c', //C
-      86: 'v' //V
-    }
-    /* GLOBAL VARIABLES end */
-
-    /* FUNCTIONS */
-
-    /*setup intrface. Used for dynamic setting sizes of elements.
-    min-width 500px, min-height 500px. if client size fewer - scrollbars
-    if bigger - content size expands to client size*/
-    let fSetInterface = () => {
-      let n_WindowWidth = document.documentElement.clientWidth;
-      let n_WindowHeight = document.documentElement.clientHeight;
-      let n_BodyMinWidth;
-      let n_BodyMinHeight;
-
-      if (n_WindowWidth < 500){
-        n_BodyMinWidth = 500;
-      } else {
-        n_BodyMinWidth = n_WindowWidth - 20;
-      }
-      if (n_WindowHeight < 500){
-        n_BodyMinHeight = 500;
-      } else {
-        n_BodyMinHeight = n_WindowHeight - 20;
-      }
-      $('body').css({
-        'min-width' : n_BodyMinWidth + 'px',
-        'min-height' : n_BodyMinHeight + 'px'
-      });
-      $('#main-container').css({
-        'width' : n_BodyMinWidth + 'px',
-        'height' : n_BodyMinHeight + 'px'
-      });
-
-      if (!fIsMobile()) { //desctop
-        $("#control-status").text("available, ");
-        nCanvasWidth = n_BodyMinWidth;
-        nCanvasHeight = n_BodyMinHeight - document.getElementById('control-info').clientHeight
-          - document.getElementById('state-info').clientHeight;
-  
-        $('#canvas').css({
-          'width' : nCanvasWidth + 'px',
-          'height' : nCanvasHeight + 'px'
-        });
-  
-        eCanvas.width = nCanvasWidth;
-        eCanvas.height = nCanvasHeight;    
-        nCanvasShortSide = Math.min(nCanvasWidth,nCanvasHeight);
-
-      } else { //mobile
-        $("#control-status").text("not available, ");
-        window.addEventListener('focus', ()=>{}); //remove event focus
-        $('body').css('font-size','2em'); //Increases text size on mobile devices
-
-        if (n_WindowWidth < n_WindowHeight){ //portrait orientation
-          nCanvasWidth = n_BodyMinWidth;
-          nCanvasHeight = n_BodyMinHeight - document.getElementById('control-info').clientHeight
-            - document.getElementById('state-info').clientHeight;
-    
-          $('#canvas').css({
-            'width' : nCanvasWidth + 'px',
-            'height' : nCanvasHeight + 'px'
-          });
-    
-          eCanvas.width = nCanvasWidth;
-          eCanvas.height = nCanvasHeight;    
-          nCanvasShortSide = Math.min(nCanvasWidth,nCanvasHeight);
-
-        } else { //album orientation
-          nCanvasWidth = n_BodyMinWidth;
-          nCanvasHeight = n_BodyMinHeight - document.getElementById('control-info').clientHeight
-            - document.getElementById('state-info').clientHeight;
-    
-          $('#canvas').css({
-            'width' : nCanvasWidth + 'px',
-            'height' : nCanvasHeight + 'px'
-          });
-    
-          eCanvas.width = nCanvasWidth;
-          eCanvas.height = nCanvasHeight;    
-          nCanvasShortSide = Math.min(nCanvasWidth,nCanvasHeight);
-        }
-      }
-
-    }
-
-    //check is it device mobile (with touchscreen). True - mobile/ false - desctop
-    let fIsMobile = () => {
-      return ('ontouchstart' in document.documentElement);
-    }
-
-    let fDrawCircle = (Xcenter, Ycenter, radius, fill) => {
-      canvasContext.beginPath();
-      canvasContext.arc(Xcenter, Ycenter, radius, 0, Math.PI * 2);
-      (fill) ? canvasContext.fill() : canvasContext.stroke();
-    }
-
-
-    /* FUNCTIONS end */
-
-    /* CONSTRUCTORS */
-    let Ball = function () {
-      this.x = nCanvasWidth / 2;
-      this.y = nCanvasHeight / 2;
-      this.radius;
-      this.setRadius(nCanvasShortSide / 40);
-      this.speed;
-      this.setSpeed(5);
-      this.Xspeed = this.speed;
-      this.Yspeed = 0;
-      this.direction;
-      this.setDirection('right');
-      this.flagZeroSpeed = false;
-      this.intervalID;
-      this.updateFrequency = 30;  //in ms
-      this.animate();
-    }
-
-    /* CONSTRUCTORS end */
-
-    /* PROTOTYPE PROPERTYS */
-
-    /* PROTOTYPE PROPERTYS end*/
-
-    /* PROTOTYPE METHODS */
-
-    //update position of the ball, according to its speed.
-    Ball.prototype.move = function(){
-      this.x += this.Xspeed;
-      this.y += this.Yspeed;
-      this.checkColisionAndOverflow();
-    }
-
-    //draw ball in its current position
-    Ball.prototype.draw = function(){
-      fDrawCircle(this.x, this.y, this.radius, true);
-    }
-
-    Ball.prototype.setDirection = function(value){
-      this.direction = value;
-      $('#span-direction').text(value);
-    }
-
-    Ball.prototype.setSpeed = function(value){
-      this.speed = value;
-      $('#span-speed').text(value);
-    }
-
-    Ball.prototype.setRadius = function(value){
-      this.radius = value;
-      $('#span-size').text(value.toFixed(0));
-    }
-
-    //Set the action of movement. Depends on argument string-name of the action
-    Ball.prototype.setAction = function(action) {
-      switch (action) {
-        case 'up': {
-          this.Xspeed = 0;
-          this.Yspeed = -this.speed;
-          this.setDirection(action);
-          break;
-        }
-        case 'down': {
-          this.Xspeed = 0;
-          this.Yspeed = this.speed;
-          this.setDirection(action);
-          break;
-        }
-        case 'left': {
-          this.Xspeed = -this.speed;
-          this.Yspeed = 0;
-          this.setDirection(action);
-          break;
-        }
-        case 'right': {
-          this.Xspeed = this.speed;
-          this.Yspeed = 0;
-          this.setDirection(action);
-          break;
-        }
-        case 'stop': {
-          this.rememberDirection();
-          this.Xspeed = 0;
-          this.Yspeed = 0;
-          this.setSpeed(0);
-          this.flagZeroSpeed = true;
-          break;
-        }
-        case 'speed1': {
-          this.setSpeed(1);
-          this.changeSpeed();
-          break;
-        }
-        case 'speed2': {
-          this.setSpeed(2);
-          this.changeSpeed();
-          break;
-        }
-        case 'speed3': {
-          this.setSpeed(3);
-          this.changeSpeed();
-          break;
-        }
-        case 'speed4': {
-          this.setSpeed(4);
-          this.changeSpeed();
-          break;
-        }
-        case 'speed5': {
-          this.setSpeed(5);
-          this.changeSpeed();
-          break;
-        }
-        case 'speed6': {
-          this.setSpeed(6);
-          this.changeSpeed();
-          break;
-        }
-        case 'speed7': {
-          this.setSpeed(7);
-          this.changeSpeed();
-          break;
-        }
-        case 'speed8': {
-          this.setSpeed(8);
-          this.changeSpeed();
-          break;
-        }
-        case 'speed9': {
-          this.setSpeed(9);
-          this.changeSpeed();
-          break;
-        }
-        case 'speedIncrease': {
-          this.setSpeed(++this.speed);
-          this.changeSpeed();
-          break;
-        }
-        case 'speedDecrease': {
-          this.setSpeed(--this.speed);
-          if (this.speed === 0){
-            this.rememberDirection();
-            this.Xspeed = 0;
-            this.Yspeed = 0;
-            this.setSpeed(0);
-            this.flagZeroSpeed = true;
-            break;
-          }
-          this.changeSpeed();
-          break;
-        }
-        case 'sizeIncrease':{
-          (this.radius < nCanvasShortSide / 2) ? this.setRadius(++this.radius)
-            : this.setRadius(nCanvasShortSide / 2);
-          break;
-        }
-        case 'sizeDecrease':{
-          (this.radius > 1) ? this.setRadius(--this.radius) : this.setRadius(1);
-          break;
-        }
-      }
-    }
-    //If ball reach any boundary of canvas - invert speed
-    //And refresh coordinates in case ball goes out of boundaries due to player action
-    Ball.prototype.checkColisionAndOverflow = function() {
-      if (this.x > nCanvasWidth - this.radius){
-        this.x = nCanvasWidth - this.radius; 
-        this.Xspeed = -this.Xspeed;
-        this.rememberDirection();
-      } else if (this.x < this.radius) {
-          this.x = this.radius;  
-          this.Xspeed = -this.Xspeed;
-          this.rememberDirection();
-        }
-      if (this.y > nCanvasHeight - this.radius){
-        this.y = nCanvasHeight - this.radius;
-        this.Yspeed = -this.Yspeed;
-        this.rememberDirection();
-      } else if (this.y < this.radius) {
-          this.y = this.radius;
-          this.Yspeed = -this.Yspeed;
-          this.rememberDirection();
-        }
-    }
-
-    Ball.prototype.changeSpeed = function() {
-      if (this.speed < 0){
-        this.setSpeed(0);
-        return;
-      }
-
-      if (this.flagZeroSpeed){ //return speed in last direction before stop
-        switch (this.direction) {
-          case 'right': {
-            this.Xspeed = this.speed;
-            this.flagZeroSpeed = false;
-            return;
-          }
-          case 'left': {
-            this.Xspeed = -this.speed;
-            this.flagZeroSpeed = false;
-            return;
-          }
-          case 'down': {
-            this.Yspeed = this.speed;
-            this.flagZeroSpeed = false;
-            return;
-          }
-          case 'up': {
-            this.Yspeed = -this.speed;
-            this.flagZeroSpeed = false;
-            return;
-          }
-        }
-      }
-
-      if (this.Xspeed > 0) {
-        this.Xspeed = this.speed;
-      } else if (this.Xspeed < 0) {
-          this.Xspeed = -this.speed;
-        }
-      if (this.Yspeed > 0) {
-        this.Yspeed = this.speed;
-      } else if (this.Yspeed < 0) {
-          this.Yspeed = -this.speed;
-        }
-    }
-
-    Ball.prototype.animate = function() {
-      this.intervalID = setInterval(()=>{
-        canvasContext.clearRect(0,0,nCanvasWidth,nCanvasHeight);
-        this.draw();
-        this.move();
-      },this.updateFrequency);
-    }
-
-    Ball.prototype.rememberDirection = function() {
-      if (this.Xspeed === 0 && this.Yspeed ===0) {
-        return;
-      }
-      if (this.Xspeed > 0){
-        this.setDirection('right');
-        return;
-      }
-      if (this.Xspeed < 0){
-        this.setDirection('left');
-        return;
-      }
-      if (this.Yspeed > 0) {
-        this.setDirection('down');
-        return;
-      }
-      if (this.Yspeed < 0) {
-        this.setDirection('up');
-        return;
-      }
-    }
-    
-    /* PROTOTYPE METHODS end */
-
-    /* EVENTS */
-
-
-    window.addEventListener('blur', ()=>{
-      $("#control-status").text("not available, ");
-      $("#control-status").css('color','red');
-    });
-    window.addEventListener('focus', ()=>{
-      $("#control-status").text("available, ");
-      $("#control-status").css('color','green');
-    });
-
-    //prevent scroll with arrows?
-    window.addEventListener("keydown", function(e) {
-      // space and arrow keys
-      if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-        e.preventDefault();
-      }
-    }, false);
-    //find out which button is pressed, and changing position of Ball
-    $("body").keydown(function (event){
-      // console.log(event.keyCode);
-      let action = o_KeyActions[event.keyCode];
-      myBall.setAction(action);
-      // fActiveButtonIndicateOn(o_SpanId[event.keyCode]);
-    });
-
-    $("body").keyup(function (event){
-      // fActiveButtonIndicateOff(o_SpanId[event.keyCode]);
-    });
-
-    let fActiveButtonIndicateOn = (spanId) => {
-      // $(spanId).css('color','blue');
-    }
-
-    let fActiveButtonIndicateOff = (spanId) => {
-      // $(spanId).css('color','black');
-    } 
-
-    
-
-    /* EVENTS end */
-
-    /* MAIN CODE */
-    fSetInterface();
-    //create new Ball object
-    let myBall = new Ball();
-    /* MAIN CODE end */
-
-  </script>
+  <script type="text/javascript" src="script.js"></script>
 </body>
 </html>
